@@ -45,4 +45,4 @@ app.*.map.json
 /android/app/release
 
 .env
-/android/app/google-services.json
+/android/app/google-services.jsonandroid/app/google-services.json
