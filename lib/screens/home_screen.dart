@@ -7,6 +7,8 @@ import 'package:safecheck/screens/profile_screen.dart';
 import 'package:safecheck/screens/receipt_details_screen.dart';
 import 'package:safecheck/screens/settings_screen.dart';
 import '../services/theme_service.dart';
+import '../services/alarm_notification_service.dart';
+
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -46,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _receiptBox = Hive.box<Receipt>('receipts');
+//  AlarmNotificationService.rescheduleAll();
   }
 
   void _onItemTapped(int index) => setState(() => _selectedIndex = index);

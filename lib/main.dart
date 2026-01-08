@@ -4,9 +4,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:io';
 
 import 'models/receipt.dart';
 import 'services/theme_service.dart';
+import 'services/alarm_notification_service.dart';
 
 // Экраны
 import 'screens/login_screen.dart';
@@ -17,28 +20,37 @@ import 'screens/expired_receipts_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 
-// обработчик пушей
+// Обработчик фоновых уведомлений
+@pragma('vm:entry-point') // Обязательно для Android!
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  print('Фоновое уведомление: ${message.messageId}');
-  print('Тело уведомления: ${message.notification?.title} | ${message.notification?.body}');
+  print('Фоновое уведомление: ${message.notification?.title}');
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // нужно для async-кода в main
+  WidgetsFlutterBinding.ensureInitialized();
 
-  // Инициализация Hive
+  // Hive
   await Hive.initFlutter();
   Hive.registerAdapter(ReceiptAdapter());
   await Hive.openBox<Receipt>('receipts');
-  // Инициализируем ThemeService и загружаем сохранённую тему
+  await AlarmNotificationService.init();
+
+  // Тема
   final themeService = ThemeService();
   await themeService.load();
 
+  // Firebase
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  // Запускаем приложение
+  final prefs = await SharedPreferences.getInstance();
+  final bool alarmsInitialized = prefs.getBool('alarms_initialized') ?? false;
+  if (!alarmsInitialized) {
+    await AlarmNotificationService.rescheduleAll();
+    await prefs.setBool('alarms_initialized', true);
+    print('Уведомления запланированы при первом запуске');
+  } else {
+    print('Уведомления уже были запланированы ранее');
+  }
   runApp(SafeCheckApp(themeService: themeService));
 }
 
@@ -59,33 +71,56 @@ class _SafeCheckAppState extends State<SafeCheckApp> {
   void initState() {
     super.initState();
     _loadSettings();
-
-    // Подписка на foreground уведомления
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Уведомление в foreground: ${message.notification?.title} | ${message.notification?.body}');
-    });
-
-    // Обработка кликов на уведомления
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('Пользователь открыл уведомление: ${message.notification?.title}');
-    });
+    _setupFCM();
   }
 
-  // Загружаем настройку уведомлений
   Future<void> _loadSettings() async {
     _prefs = await SharedPreferences.getInstance();
     final enabled = _prefs.getBool('notifications') ?? true;
-    if (mounted) {
-      setState(() => _notificationsEnabled = enabled);
-    }
+    if (mounted) setState(() => _notificationsEnabled = enabled);
   }
 
-  // Сохраняем настройку уведомлений
   Future<void> _toggleNotifications(bool enabled) async {
     setState(() => _notificationsEnabled = enabled);
     await _prefs.setBool('notifications', enabled);
   }
 
+  Future<void> _setupFCM() async {
+    // Запрос разрешения
+    final settings = await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+    print('Разрешение на уведомления: ${settings.authorizationStatus}');
+
+    // Подписка на общий топик  убрать потом
+    await FirebaseMessaging.instance.subscribeToTopic('all');
+
+    // Получение токена
+    String? token = await FirebaseMessaging.instance.getToken();
+    print('FCM TOKEN: $token');
+
+    // Foreground уведомления
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Получено foreground уведомление: ${message.notification?.title}');
+      // TODO: показать локальное уведомление или SnackBar
+    });
+
+    // Открытие по клику (приложение в фоне)
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('Открыто по уведомлению из фона');
+      // Можно перейти на экран
+    });
+
+    // Открытие из terminated состояния
+    RemoteMessage? initialMessage = await FirebaseMessaging.instance
+        .getInitialMessage();
+    if (initialMessage != null) {
+      print('Открыто из terminated по уведомлению');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

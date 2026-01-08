@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:safecheck/models/receipt.dart';
 import 'package:safecheck/screens/qr_scanner_screen.dart';
 import 'package:safecheck/services/receipt_api_service.dart';
+import '../services/alarm_notification_service.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 class AddReceiptScreen extends StatefulWidget {
   const AddReceiptScreen({super.key});
@@ -147,6 +149,9 @@ class _AddReceiptScreenState extends State<AddReceiptScreen> {
         comment: _commentController.text,
         imagePath: _receiptImage?.path ?? "",
       );
+      final box = Hive.box<Receipt>('receipts');
+      box.add(receipt);  //box.put(receipt.id, receipt)
+      AlarmNotificationService.scheduleForReceipt(receipt);
       Navigator.pop(context, receipt);
     }
   }
