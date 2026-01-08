@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1099476007024",
+    "project_id": "safecheck-95802",
+    "storage_bucket": "safecheck-95802.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1099476007024:android:9a12760fc74af917a11cb5",
+        "android_client_info": {
+          "package_name": "com.safecheck.warranty"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdW4JgUVNXXWU-d60B1zs2KpFgNUhEXUc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -8,8 +8,8 @@ import '../models/receipt.dart';
 @pragma('vm:entry-point')
 class AlarmNotificationService {
   static final FlutterLocalNotificationsPlugin _notifications =
-  FlutterLocalNotificationsPlugin();
-
+      FlutterLocalNotificationsPlugin();
+  @pragma('vm:entry-point')
   static Future<void> init() async {
     // Инициализация alarm manager
     await AndroidAlarmManager.initialize();
@@ -17,9 +17,10 @@ class AlarmNotificationService {
     tz.initializeTimeZones();
     // Инициализация уведомлений
     const AndroidInitializationSettings android =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
-    const InitializationSettings settings =
-    InitializationSettings(android: android);
+    AndroidInitializationSettings('notification_icon');
+    const InitializationSettings settings = InitializationSettings(
+      android: android,
+    );
 
     await _notifications.initialize(settings);
 
@@ -33,13 +34,18 @@ class AlarmNotificationService {
     );
 
     await _notifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
   }
 
   // Топ-левел callback для AlarmManager
   @pragma('vm:entry-point')
-  static Future<void> _alarmCallback(int id, Map<String, dynamic>? payload) async {
+  static Future<void> _alarmCallback(
+    int id,
+    Map<String, dynamic>? payload,
+  ) async {
     await init();
 
     final String title = payload?['title'] ?? 'Товар';
@@ -61,21 +67,16 @@ class AlarmNotificationService {
       ),
     );
   }
-
+  @pragma('vm:entry-point')
   // Планируем уведомления для одного чека
   static Future<void> scheduleForReceipt(Receipt receipt) async {
     final warrantyEnd = receipt.warrantyEnd;
 
     final reminders = [
-      /*{'days': 30, 'date': warrantyEnd.subtract(const Duration(days: 30))},
+      {'days': 30, 'date': warrantyEnd.subtract(const Duration(days: 30))},
       {'days': 14, 'date': warrantyEnd.subtract(const Duration(days: 14))},
       {'days': 7, 'date': warrantyEnd.subtract(const Duration(days: 7))},
       {'days': 0, 'date': warrantyEnd}, // в день окончания
-*/
-    {'days': 1, 'date': DateTime.now().add(const Duration(minutes: 1))},
-    {'days': 2, 'date': DateTime.now().add(const Duration(minutes: 2))},
-    {'days': 0, 'date': DateTime.now().add(const Duration(minutes: 4))},
-
     ];
 
     for (var reminder in reminders) {
@@ -92,16 +93,15 @@ class AlarmNotificationService {
           allowWhileIdle: true,
           wakeup: true,
           rescheduleOnReboot: true, // КЛЮЧЕВОЕ: пересоздаст после ребута
-          params: {
-            'title': receipt.title,
-            'days': days,
-          },
+          params: {'title': receipt.title, 'days': days},
         );
       }
-      print('Планирую уведомление для чека ${receipt.title} на ${notifyDate} (через $days дней)');
+      print(
+        'Планирую уведомление для чека ${receipt.title} на ${notifyDate} (через $days дней)',
+      );
     }
   }
-
+  @pragma('vm:entry-point')
   // Перепланируем все уведомления (вызывать при открытии приложения)
   static Future<void> rescheduleAll() async {
     final box = Hive.box<Receipt>('receipts');
