@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:safecheck/models/receipt.dart';
 import 'package:safecheck/screens/receipt_details_screen.dart';
 import 'package:intl/intl.dart';
-
 
 class ExpiredReceiptsScreen extends StatelessWidget {
   final List<Receipt> receipts;
@@ -12,7 +10,7 @@ class ExpiredReceiptsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final colorScheme = Theme.of(context).colorScheme;
 
     // Фильтруем истёкшие чеки
     final expiredReceipts = receipts
@@ -20,47 +18,79 @@ class ExpiredReceiptsScreen extends StatelessWidget {
         .toList();
 
     if (expiredReceipts.isEmpty) {
-      return const Center(
-        child: Text("Нет истёкших чеков", style: TextStyle(fontSize: 18)),
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.history_outlined, size: 100, color: colorScheme.outline),
+            const SizedBox(height: 24),
+            Text(
+              "Нет истёкших чеков",
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(color: colorScheme.onSurface),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Здесь будут чеки с закончившейся гарантией",
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       );
     }
 
     return ListView.builder(
+      padding: const EdgeInsets.all(16),
       itemCount: expiredReceipts.length,
-      padding: const EdgeInsets.symmetric(vertical: 8),
       itemBuilder: (context, index) {
         final receipt = expiredReceipts[index];
+        final dateFormat = DateFormat('dd.MM.yyyy');
 
         return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 4,
+          color: colorScheme.surfaceContainer,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            leading: const CircleAvatar(child: Icon(Icons.receipt_long)),
-            title: Text(receipt.title),
+            contentPadding: const EdgeInsets.all(16),
+            leading: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.receipt_long,
+                color: colorScheme.onErrorContainer,
+              ),
+            ),
+            title: Text(
+              receipt.title,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text("Дата покупки: ${receipt.date}"),
-                Tooltip(
-                  message: "Гарантия закончилась",
-                  child: Text(
-                    "Гарантия до: ${DateFormat('dd.MM.yyyy').format(receipt.warrantyEnd)}",
-                    style: const TextStyle(color: Colors.red),
+                Text(
+                  "Покупка: ${dateFormat.format(receipt.date)}",
+                  style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
+                ),
+                Text(
+                  "Гарантия закончилась: ${dateFormat.format(receipt.warrantyEnd)}",
+                  style: TextStyle(
+                    color: colorScheme.error,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => ReceiptDetailsScreen(receipt: receipt),
-                ),
+                MaterialPageRoute(builder: (_) => ReceiptDetailsScreen(receipt: receipt)),
               );
             },
           ),

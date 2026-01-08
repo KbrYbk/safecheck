@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io';
 
 import 'models/receipt.dart';
@@ -147,12 +148,13 @@ class _SafeCheckAppState extends State<SafeCheckApp> {
               theme: ThemeData(colorScheme: lightScheme, useMaterial3: true),
               darkTheme: ThemeData(colorScheme: darkScheme, useMaterial3: true),
               themeMode: mode,
-              initialRoute: '/home',
+             /* initialRoute: '/home',*/
+              home: AuthWrapper(themeService: widget.themeService),
               routes: {
                 '/login': (context) => const LoginScreen(),
                 '/register': (context) => const RegisterScreen(),
-                '/home': (context) =>
-                    HomeScreen(themeService: widget.themeService),
+                /*'/home': (context) =>
+                    HomeScreen(themeService: widget.themeService),*/
                 '/add': (context) => const AddReceiptScreen(),
                 '/expired': (context) {
                   final box = Hive.box<Receipt>('receipts');
@@ -168,6 +170,28 @@ class _SafeCheckAppState extends State<SafeCheckApp> {
             );
           },
         );
+      },
+    );
+  }
+}
+class AuthWrapper extends StatelessWidget {
+  final ThemeService themeService;
+
+  const AuthWrapper({super.key, required this.themeService});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        print('AuthWrapper: connectionState = ${snapshot.connectionState}, hasData = ${snapshot.hasData}');
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        if (snapshot.hasData) {
+          return HomeScreen(themeService: themeService);
+        }
+        return const LoginScreen();
       },
     );
   }

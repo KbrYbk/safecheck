@@ -50,6 +50,8 @@ dependencies:
   flutter_local_notifications: ^19.5.0
   android_alarm_manager_plus: ^5.0.0
   timezone: ^0.10.1
+  firebase_auth: ^5.3.1
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -71,7 +73,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
+  assets:
+    - assets/icons/google_logo.png
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

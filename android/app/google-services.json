@@ -12,7 +12,20 @@
           "package_name": "com.safecheck.warranty"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1099476007024-ome4vb1009klj9qva843kcjefa81o9je.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.safecheck.warranty",
+            "certificate_hash": "015ae79c7cbea0a1385c1eeeb97e864c8b60608e"
+          }
+        },
+        {
+          "client_id": "1099476007024-d3452omv5om2qq5m5evhh6p168o8lljs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBdW4JgUVNXXWU-d60B1zs2KpFgNUhEXUc"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1099476007024-d3452omv5om2qq5m5evhh6p168o8lljs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
