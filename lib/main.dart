@@ -4,9 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:io';
 
 import 'models/receipt.dart';
 import 'services/theme_service.dart';
@@ -22,7 +20,7 @@ import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 
 // Обработчик фоновых уведомлений
-@pragma('vm:entry-point') // Обязательно для Android!
+@pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print('Фоновое уведомление: ${message.notification?.title}');
 }
@@ -43,6 +41,7 @@ void main() async {
   // Firebase
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
   final prefs = await SharedPreferences.getInstance();
   final bool alarmsInitialized = prefs.getBool('alarms_initialized') ?? false;
   if (!alarmsInitialized) {
@@ -52,6 +51,7 @@ void main() async {
   } else {
     print('Уведомления уже были запланированы ранее');
   }
+
   runApp(SafeCheckApp(themeService: themeService));
 }
 
@@ -75,19 +75,46 @@ class _SafeCheckAppState extends State<SafeCheckApp> {
     _setupFCM();
   }
 
+  // Загружаем сохранённую настройку уведомлений
   Future<void> _loadSettings() async {
     _prefs = await SharedPreferences.getInstance();
     final enabled = _prefs.getBool('notifications') ?? true;
-    if (mounted) setState(() => _notificationsEnabled = enabled);
+    print('Загружено из prefs: notifications = $enabled'); // Добавь этот лог!
+
+    if (mounted) {
+      setState(() => _notificationsEnabled = enabled);
+    }
+
+    await _updateTopicSubscription();
   }
 
+  // Переключение уведомлений — сохраняем и обновляем подписку на топик
   Future<void> _toggleNotifications(bool enabled) async {
     setState(() => _notificationsEnabled = enabled);
     await _prefs.setBool('notifications', enabled);
+    await _updateTopicSubscription();
   }
 
+  // Новая функция: подписка или отписка от топика в зависимости от настройки
+  Future<void> _updateTopicSubscription() async {
+    final enabled = _prefs.getBool('notifications') ?? true;
+
+    try {
+      if (enabled) {
+        await FirebaseMessaging.instance.subscribeToTopic('all');
+        print('Успешно подписались на топик "all"');
+      } else {
+        await FirebaseMessaging.instance.unsubscribeFromTopic('all');
+        print('Успешно отписались от топика "all"');
+      }
+    } catch (e) {
+      print('Ошибка при подписке/отписке: $e');
+    }
+  }
+
+  // Настройка FCM
   Future<void> _setupFCM() async {
-    // Запрос разрешения
+    // Запрашиваем разрешение на push-уведомления (делаем всегда)
     final settings = await FirebaseMessaging.instance.requestPermission(
       alert: true,
       badge: true,
@@ -96,49 +123,46 @@ class _SafeCheckAppState extends State<SafeCheckApp> {
     );
     print('Разрешение на уведомления: ${settings.authorizationStatus}');
 
-    // Подписка на общий топик  убрать потом
-    await FirebaseMessaging.instance.subscribeToTopic('all');
-
-    // Получение токена
+    // Получаем токен (полезно для отладки и будущих функций)
     String? token = await FirebaseMessaging.instance.getToken();
     print('FCM TOKEN: $token');
 
-    // Foreground уведомления
+    // Обработка уведомлений в foreground
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print('Получено foreground уведомление: ${message.notification?.title}');
-      // TODO: показать локальное уведомление или SnackBar
+      // Здесь можно показать локальное уведомление или SnackBar
     });
 
-    // Открытие по клику (приложение в фоне)
+    // Открытие приложения по клику на уведомление (из фона)
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print('Открыто по уведомлению из фона');
-      // Можно перейти на экран
+      // Можно перейти на нужный экран
     });
 
     // Открытие из terminated состояния
-    RemoteMessage? initialMessage = await FirebaseMessaging.instance
-        .getInitialMessage();
+    RemoteMessage? initialMessage =
+    await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
       print('Открыто из terminated по уведомлению');
     }
+
+    // Подписка на топик делается в _updateTopicSubscription(),
+    // которая вызывается из _loadSettings()
   }
 
   @override
   Widget build(BuildContext context) {
     return DynamicColorBuilder(
       builder: (lightDynamic, darkDynamic) {
-        // Если есть системные цвета (Android 12+) → используем
-        // Иначе → seedColor (fallback для старых Android)
         final lightScheme =
-            lightDynamic ??
-            ColorScheme.fromSeed(seedColor: const Color(0xFF2079DF));
+            lightDynamic ?? ColorScheme.fromSeed(seedColor: const Color(0xFF2079DF));
         final darkScheme =
             darkDynamic ??
-            ColorScheme.fromSeed(
-              seedColor: const Color(0xFF2079DF),
-              brightness: Brightness.dark,
-            );
-        // Подписываемся на ValueNotifier — MaterialApp будет менять themeMode автоматически
+                ColorScheme.fromSeed(
+                  seedColor: const Color(0xFF2079DF),
+                  brightness: Brightness.dark,
+                );
+
         return ValueListenableBuilder<ThemeMode>(
           valueListenable: widget.themeService.themeMode,
           builder: (context, mode, _) {
@@ -148,13 +172,10 @@ class _SafeCheckAppState extends State<SafeCheckApp> {
               theme: ThemeData(colorScheme: lightScheme, useMaterial3: true),
               darkTheme: ThemeData(colorScheme: darkScheme, useMaterial3: true),
               themeMode: mode,
-             /* initialRoute: '/home',*/
               home: AuthWrapper(themeService: widget.themeService),
               routes: {
                 '/login': (context) => const LoginScreen(),
                 '/register': (context) => const RegisterScreen(),
-                /*'/home': (context) =>
-                    HomeScreen(themeService: widget.themeService),*/
                 '/add': (context) => const AddReceiptScreen(),
                 '/expired': (context) {
                   final box = Hive.box<Receipt>('receipts');
@@ -174,6 +195,7 @@ class _SafeCheckAppState extends State<SafeCheckApp> {
     );
   }
 }
+
 class AuthWrapper extends StatelessWidget {
   final ThemeService themeService;
 

@@ -36,9 +36,6 @@ class ReceiptDetailsScreen extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final dateFormat = DateFormat('dd.MM.yyyy');
     final isExpired = receipt.warrantyEnd.isBefore(DateTime.now());
-
-    // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
-    // ЛОКАЛЬНАЯ ФУНКЦИЯ — CONTEXT ДОСТУПЕН!
     Widget buildInfoRow(IconData icon, String label, String value) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -76,7 +73,6 @@ class ReceiptDetailsScreen extends StatelessWidget {
         ),
       );
     }
-    // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
 
     return Scaffold(
       appBar: AppBar(

@@ -1,4 +1,6 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import '../services/alarm_notification_service.dart';
 import '../services/theme_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -61,18 +63,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _onNotificationsChanged(bool val) {
+  Future<void> _onNotificationsChanged(bool val) async {
     setState(() => _notifications = val);
     widget.onNotificationsChanged(val);
+
+    if (val) {
+      await FirebaseMessaging.instance.subscribeToTopic('all');
+      // Если нужно — перепланировать alarm'ы
+      await AlarmNotificationService.rescheduleAll();
+    } else {
+      await FirebaseMessaging.instance.unsubscribeFromTopic('all');
+      await AlarmNotificationService.cancelAllAlarms(); // ← ОТМЕНЯЕМ ЛОКАЛЬНЫЕ
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(val
-            ? "Уведомления включены"
-            : "Уведомления выключены"),
+        content: Text(val ? "Уведомления включены" : "Все уведомления отключены"),
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final themeMode = widget.themeService.themeMode.value;
@@ -101,9 +110,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const Divider(),
           SwitchListTile(
-            secondary: const Icon(Icons.notifications_outlined),
-            title: const Text("Пуш-уведомления"),
-            subtitle: const Text("Разрешить или запретить уведомления"),
+            secondary: const Icon(Icons.campaign_outlined),
+            title: const Text("Сторонние рассылки"),
+            subtitle: const Text("Получать новости и акции от приложения"),
             value: _notifications,
             onChanged: _onNotificationsChanged,
           ),
@@ -119,7 +128,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 applicationVersion: "1.0",
                 children: const [
                   Text(
-                    "Приложение для хранения гарантийных чеков локально на устройстве.",
+                    "Приложение для хранения гарантийных чеков локально на устройстве.\n"
+                        "Напоминания о гарантии работают всегда, даже без интернета.",
                   ),
                 ],
               );

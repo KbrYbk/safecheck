@@ -109,4 +109,11 @@ class AlarmNotificationService {
       await scheduleForReceipt(receipt);
     }
   }
+  @pragma('vm:entry-point')
+  static Future<void> cancelAllAlarms() async {
+    for (int i = 0; i < 100000; i++) {
+      await AndroidAlarmManager.cancel(i);
+    }
+    print('Все локальные уведомления отменены');
+  }
 }
